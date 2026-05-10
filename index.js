@@ -23,45 +23,35 @@ client.once('clientReady', () => {
 })
 
 client.on('messageCreate', async message => {
-
   if (message.author.bot) return
-
   if (!message.content.startsWith('!pix')) return
 
   const args = message.content.split(' ')
-
   const chave = args[1]
   const valorTexto = args[2]
 
   if (!chave || !valorTexto) {
-    return message.reply(
-      'Use:\n`!pix chave valor`\n\nExemplo:\n`!pix email@gmail.com 10`'
-    )
+    return message.reply('Use assim: `!pix chave valor`\nExemplo: `!pix email@gmail.com 10`')
   }
 
   const valor = Number(valorTexto.replace(',', '.'))
 
   if (isNaN(valor)) {
-    return message.reply('Valor inválido.')
+    return message.reply('Valor inválido. Exemplo: `!pix email@gmail.com 10`')
   }
 
-  // Detectar tipo da chave
   let tipoChave = 'Chave Aleatória'
 
   if (chave.includes('@')) {
     tipoChave = 'E-mail'
-  }
-  else if (/^\d{11}$/.test(chave)) {
+  } else if (/^\d{11}$/.test(chave)) {
     tipoChave = 'CPF'
-  }
-  else if (/^\d{14}$/.test(chave)) {
+  } else if (/^\d{14}$/.test(chave)) {
     tipoChave = 'CNPJ'
-  }
-  else if (/^\+55\d{10,11}$/.test(chave) || /^\d{10,11}$/.test(chave)) {
-    tipoChave = 'Telefone'
+  } else if (/^\+55\d{10,11}$/.test(chave) || /^\d{10,11}$/.test(chave)) {
+    tipoChave = 'Celular'
   }
 
-  // Gerar PIX
   const pix = QrCodePix({
     version: '01',
     key: chave,
@@ -73,30 +63,33 @@ client.on('messageCreate', async message => {
 
   const payload = pix.payload()
 
-  // Gerar QRCode
-  const qrBuffer = await QRCode.toBuffer(payload)
+  const qrBuffer = await QRCode.toBuffer(payload, {
+    width: 220,
+    margin: 1
+  })
 
   const attachment = new AttachmentBuilder(qrBuffer, {
     name: 'pix.png'
   })
 
-  // Embed bonita
+  const valorFormatado = valor.toLocaleString('pt-BR', {
+    style: 'currency',
+    currency: 'BRL'
+  })
+
   const embed = new EmbedBuilder()
     .setColor('#f1c40f')
-    .setAuthor({
-      name: 'PixFast APP'
-    })
     .setTitle('Chave PIX')
     .addFields(
       {
         name: 'Tipo:',
         value: `\`${tipoChave}\``,
-        inline: false
+        inline: true
       },
       {
         name: 'Valor:',
-        value: `R$ ${valor.toLocaleString('pt-BR')}`,
-        inline: false
+        value: `\`${valorFormatado}\``,
+        inline: true
       }
     )
     .setImage('attachment://pix.png')
@@ -105,7 +98,6 @@ client.on('messageCreate', async message => {
     embeds: [embed],
     files: [attachment]
   })
-
 })
 
 client.login(TOKEN)
